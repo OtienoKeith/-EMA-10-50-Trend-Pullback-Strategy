@@ -1,0 +1,41 @@
+//@version=5
+strategy("EMA 10/50 Trend Pullback Strategy v2", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// === Input Parameters ===
+emaFastLen = input.int(10, title="EMA Fast (10)")
+emaSlowLen = input.int(50, title="EMA Slow (50)")
+
+// === EMA Calculations ===
+emaFast = ta.ema(close, emaFastLen)
+emaSlow = ta.ema(close, emaSlowLen)
+
+// === Trade Conditions ===
+
+// General Trend Filters
+isUpTrend = close > emaFast and emaFast > emaSlow and close > emaSlow
+isDownTrend = close < emaFast and emaFast < emaSlow and close < emaSlow
+
+// Price touch condition: bar must have touched EMA 10
+touchedEMA = low <= emaFast and high >= emaFast
+
+// Entry Conditions
+buyCondition = isDownTrend and touchedEMA and open < emaFast and not strategy.opentrades
+sellCondition = isUpTrend and touchedEMA and open > emaFast and not strategy.opentrades
+
+// Entry
+if (buyCondition)
+    strategy.entry("Long", strategy.long)
+
+if (sellCondition)
+    strategy.entry("Short", strategy.short)
+
+// Exit Conditions: close crosses back against the EMA
+if strategy.position_size > 0 and close > emaFast
+    strategy.close("Long")
+
+if strategy.position_size < 0 and close < emaFast
+    strategy.close("Short")
+
+// === Plotting ===
+plot(emaFast, title="EMA 10", color=color.orange)
+plot(emaSlow, title="EMA 50", color=color.blue)
